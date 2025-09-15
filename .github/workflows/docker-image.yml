@@ -1,4 +1,4 @@
-name: Docker Image CI
+name: Multi-arch Docker Image CI
 
 on:
   push:
@@ -8,32 +8,39 @@ on:
 
 jobs:
   build-multiarch:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        platform: [linux/amd64, linux/arm64]
+        os: [ubuntu-22.04, ubuntu-22.04-arm]
+        include:
+          - os: ubuntu-22.04
+            arch: amd64
+            suffix: x86
+          - os: ubuntu-22.04-arm
+            arch: arm64
+            suffix: arm
+    
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
 
     - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v2
+      uses: docker/setup-buildx-action@v3
 
     - name: Build Docker image
-      uses: docker/build-push-action@v4
-      with:
-        context: .
-        file: Dockerfile
-        platforms: ${{ matrix.platform }}
-        load: true
-        tags: my-image-name:$(date +%s)-${{ matrix.platform }}
-
-    - name: Save Docker image as tar
       run: |
-        docker save my-image-name:$(date +%s)-${{ matrix.platform }} | gzip > image-${{ matrix.platform }}.tar.gz
+        docker buildx build \
+          --platform linux/${{ matrix.arch }} \
+          --output type=docker \
+          -t my-image-name:${{ matrix.suffix }}-$(date +%s) \
+          -f Dockerfile .
+
+    - name: Save Docker image
+      run: |
+        docker save my-image-name:${{ matrix.suffix }}-$(date +%s) | gzip > image-${{ matrix.suffix }}.tar.gz
 
     - name: Upload Docker image artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
-        name: docker-image-${{ matrix.platform }}
-        path: image-${{ matrix.platform }}.tar.gz
+        name: docker-image-${{ matrix.suffix }}
+        path: image-${{ matrix.suffix }}.tar.gz
