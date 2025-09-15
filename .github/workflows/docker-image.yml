@@ -5,6 +5,7 @@ on:
     branches: [ "master" ]
   pull_request:
     branches: [ "master" ]
+
 jobs:
   build-multiarch:
     runs-on: ${{ matrix.os }}
@@ -26,26 +27,20 @@ jobs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
 
-    # 关键修复：合并构建和保存步骤，使用统一的时间戳和镜像名
     - name: Build and Save Docker Image
       run: |
-        # 生成统一时间戳变量
-        TIMESTAMP=$(date +%s)
-        # 使用一致的镜像名称（此处改为 xrce_agent）
-        IMAGE_NAME="xrce_agent"
-        
-        # 构建镜像（注意镜像名称和标签）
+        TIMESTAMP=$(date +%s) 
+        IMAGE_NAME="xrce_agent" 
         docker buildx build \
           --platform linux/${{ matrix.arch }} \
           --output type=docker \
-          -t $IMAGE_NAME:${{ matrix.suffix }}-$TIMESTAMP \  # 统一名称和标签
-          -f Dockerfile .
+          -t $IMAGE_NAME:${{ matrix.suffix }}-$TIMESTAMP \
+          -f Dockerfile .  # 这里有空格
         
-        # 保存镜像（使用相同的名称和标签）
         docker save $IMAGE_NAME:${{ matrix.suffix }}-$TIMESTAMP | gzip > $IMAGE_NAME-${{ matrix.suffix }}.tar.gz
 
     - name: Upload Docker image artifact
       uses: actions/upload-artifact@v4
       with:
         name: docker-image-${{ matrix.suffix }}
-        path: xrce_agent-${{ matrix.suffix }}.tar.gz  # 文件名与保存步骤一致
+        path: xrce_agent-${{ matrix.suffix }}.tar.gz
