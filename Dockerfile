@@ -49,7 +49,11 @@ RUN tar -xzvf /usr/local/install.tar.gz -C /usr/local/ &&\
 
 COPY --from=build /agent/agent.refs .
 
+# 添加启动脚本并设置权限
+COPY entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
 RUN ldconfig
 
-ENTRYPOINT ["MicroXRCEAgent"]
+ENTRYPOINT ["entrypoint.sh"]
 CMD ["--help"]
