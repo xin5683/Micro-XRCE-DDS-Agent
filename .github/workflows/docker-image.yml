@@ -29,18 +29,19 @@ jobs:
 
     - name: Build and Save Docker Image
       run: |
-        TIMESTAMP=$(date +%s) 
-        IMAGE_NAME="xrce_agent" 
+        TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+        echo "TIMESTAMP=$TIMESTAMP" >> $GITHUB_ENV
+        IMAGE_NAME="xrce_agent"
         docker buildx build \
           --platform linux/${{ matrix.arch }} \
           --output type=docker \
           -t $IMAGE_NAME:${{ matrix.suffix }}-$TIMESTAMP \
           -f Dockerfile .  # 这里有空格
         
-        docker save $IMAGE_NAME:${{ matrix.suffix }}-$TIMESTAMP | gzip > $IMAGE_NAME-${{ matrix.suffix }}.tar.gz
+        docker save $IMAGE_NAME:${{ matrix.suffix }}-$TIMESTAMP | gzip > $IMAGE_NAME-${{ matrix.suffix }}-$TIMESTAMP.tar.gz
 
     - name: Upload Docker image artifact
       uses: actions/upload-artifact@v4
       with:
-        name: docker-image-${{ matrix.suffix }}
-        path: xrce_agent-${{ matrix.suffix }}.tar.gz
+        name: docker-image-${{ matrix.suffix }}-${{ env.TIMESTAMP }}
+        path: xrce_agent-${{ matrix.suffix }}-${{ env.TIMESTAMP }}.tar.gz
