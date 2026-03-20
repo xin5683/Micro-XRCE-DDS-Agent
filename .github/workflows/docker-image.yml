@@ -1,10 +1,7 @@
 name: Multi-arch Docker Image CI
 
 on:
-  push:
-    branches: [ "master" ]
-  pull_request:
-    branches: [ "master" ]
+  workflow_dispatch:
 
 jobs:
   build-multiarch:
