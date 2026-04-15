@@ -23,6 +23,23 @@
 namespace eprosima {
 namespace uxr {
 
+// Apply low-latency optimizations to DataWriter QoS regardless of creation path
+static void apply_low_latency_qos(fastdds::dds::DataWriterQos& qos)
+{
+#ifdef UAGENT_LOW_LATENCY_QOS
+    // ASYNCHRONOUS: write() returns immediately, data sent by background thread.
+    // This eliminates blocking on RTPS send path, which is the primary source of jitter.
+    qos.publish_mode().kind = fastdds::dds::ASYNCHRONOUS_PUBLISH_MODE;
+
+    // Tighten RTPS heartbeat period for faster ACK feedback (default ~3s is too slow)
+    qos.reliable_writer_qos().times.heartbeat_period.seconds = 0;
+    qos.reliable_writer_qos().times.heartbeat_period.nanosec = 500000000;     //500 ms
+
+#else
+    (void)qos;  // Avoid unused parameter warning when optimization is disabled
+#endif
+}
+
 static void set_qos_from_xrce_object(
         fastdds::dds::DomainParticipantQos& qos,
         const dds::xrce::OBJK_DomainParticipant_Binary& participant_xrce)
@@ -61,6 +78,9 @@ static void set_qos_from_xrce_object(
 {
     qos.endpoint().history_memory_policy =
         fastdds::rtps::MemoryManagementPolicy::PREALLOCATED_WITH_REALLOC_MEMORY_MODE;
+
+    // Apply low-latency optimizations
+    apply_low_latency_qos(qos);
 
     if (datawriter_xrce.has_qos())
     {
@@ -748,7 +768,9 @@ bool FastDDSDataWriter::create_by_ref(const std::string& ref)
 
             if (topic_)
             {
-                ptr_ = publisher_->create_datawriter_with_profile(topic_->get_ptr(), ref);
+                // Apply low-latency optimizations on top of profile QoS
+                apply_low_latency_qos(qos);
+                ptr_ = publisher_->create_datawriter(topic_->get_ptr(), qos);
                 rv = (nullptr != ptr_);
             }
         }
@@ -770,6 +792,8 @@ bool FastDDSDataWriter::create_by_xml(const std::string& xml)
 
             if (topic_)
             {
+                // Apply low-latency optimizations on top of XML QoS
+                apply_low_latency_qos(qos);
                 ptr_ = publisher_->create_datawriter(topic_->get_ptr(), qos);
                 rv = (nullptr != ptr_);
             }

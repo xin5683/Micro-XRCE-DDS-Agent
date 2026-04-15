@@ -72,6 +72,9 @@ set(UAGENT_SERVER_BUFFER_SIZE                  65535    CACHE STRING "Server buf
 # Off-standard features and tweaks
 option(UAGENT_TWEAK_XRCE_WRITE_LIMIT "This feature uses a tweak to allow XRCE WRITE DATA submessages greater than 64 kB." ON)
 
+# Low-latency QoS optimization for high-frequency data streams
+option(UAGENT_LOW_LATENCY_QOS "Apply low-latency QoS optimizations (async publish mode, reduced heartbeat period) to DataWriters." ON)
+
 ###############################################################################
 # Dependencies
 ###############################################################################
@@ -273,6 +276,11 @@ if((CMAKE_SYSTEM_NAME STREQUAL "Windows") AND (UAGENT_TARGET_TYPE STREQUAL "SHAR
             ${PROJECT_NAME}_SHARED
         )
 endif()
+
+target_compile_definitions(${PROJECT_NAME}
+    PRIVATE
+        $<$<BOOL:${UAGENT_LOW_LATENCY_QOS}>:UAGENT_LOW_LATENCY_QOS>
+    )
 
 target_compile_options(${PROJECT_NAME}
     PRIVATE

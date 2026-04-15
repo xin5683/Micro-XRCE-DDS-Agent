@@ -28,6 +28,12 @@
 #include <functional>
 
 #define RECEIVE_TIMEOUT 1000   // Milliseconds
+  void set_realtime_priority(std::thread& t, int priority = 80) {
+      sched_param sch_params;
+      sch_params.sched_priority = priority;
+      pthread_setschedparam(t.native_handle(), SCHED_FIFO, &sch_params);
+  }
+
 
 namespace eprosima {
 namespace uxr {
@@ -76,8 +82,11 @@ bool Server<EndPoint>::start()
     running_cond_ = true;
     error_handler_thread_ = std::thread(&Server::error_handler_loop, this);
     receiver_thread_ = std::thread(&Server::receiver_loop, this);
+    set_realtime_priority(receiver_thread_,85);
     sender_thread_ = std::thread(&Server::sender_loop, this);
+    set_realtime_priority(sender_thread_,84);
     processing_thread_ = std::thread(&Server::processing_loop, this);
+    set_realtime_priority(processing_thread_,83);
     heartbeat_thread_ = std::thread(&Server::heartbeat_loop, this);
 
     return true;
